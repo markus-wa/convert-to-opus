@@ -1,9 +1,13 @@
 from subprocess import Popen
 from multiprocessing import Pool
-from shutil import copyfile
+from shutil import copyfile, which
 from pathlib import Path
 import sys
 import os
+
+if which('opusenc') is None:
+    print("ERROR: opusenc not found in PATH - please make sure it's installed",  file=sys.stderr)
+    exit(1)
 
 source = sys.argv[1]
 target = sys.argv[2]
