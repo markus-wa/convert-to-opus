@@ -34,7 +34,7 @@ def base_action(src_base, src_ext, dest_ext, f):
 
 extensions_to_action = {
     # Convert files with these extensions to .opus
-    **{ext: to_opus for ext in ['.wav', '.flac', '.ogg', '.aiff']},
+    **{ext: to_opus for ext in ['.wav', '.flac', '.ogg', '.aif']},
 
     # Ignore files with these extensions
     # My source folder is synced with google drive and I don't want to copy google drive metadata
