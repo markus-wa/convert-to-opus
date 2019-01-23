@@ -1,6 +1,6 @@
 # convert-to-opus
 
-Small tool to help convert your music library from lossless formats (Wave/WAV, FLAC, Ogg/FLAC & AIFF) to [Opus](https://en.wikipedia.org/wiki/Opus_(audio_format).
+Small tool to help convert your music library from lossless formats (Wave/WAV, FLAC, Ogg/FLAC & AIFF) to [Opus](https://en.wikipedia.org/wiki/Opus_(audio_format)).
 
 I mainly wrote this for myself to synchronize the smaller, lossy Opus music files from my PC to mobile.
 That way I have enough storage to keep everything on my phone.
