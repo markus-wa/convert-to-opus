@@ -11,7 +11,13 @@ target = sys.argv[2]
 
 # We can't use a lambda since they aren't picklable
 def opusenc(src, dest):
-    Popen(['opusenc', src, dest]).wait()
+    if Popen(['opusenc', src, dest]).wait() is not 0:
+        # Fallback to copy
+        # Can happen if a .ogg file is encoded as Vorbis, not FLAC
+        print('Falling back to copy for {0}'.format(src))
+        _, src_ext = os.path.splitext(src)
+        target_base, _ = os.path.splitext(dest)
+        copyfile(src, target_base + src_ext)
 
 
 def to_opus(src_base, src_ext):
