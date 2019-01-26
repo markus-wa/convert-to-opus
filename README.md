@@ -1,6 +1,12 @@
 # convert-to-opus
 
-Small tool to help convert your music library from lossless formats (Wave/WAV, FLAC, Ogg/FLAC & AIFF) to [Opus](https://en.wikipedia.org/wiki/Opus_(audio_format)).
+Small command-line tool to help convert your music library from lossless formats (Wave/WAV, FLAC, Ogg/FLAC & AIFF) to [Opus](https://en.wikipedia.org/wiki/Opus_(audio_format)).
+
+[![Build Status](https://travis-ci.com/markus-wa/convert-to-opus.svg?branch=master)](https://travis-ci.com/markus-wa/convert-to-opus)
+[![Python Version](https://img.shields.io/badge/python-3.5+-blue.svg)](https://www.python.org/download/releases/3.5.0/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE.md)
+
+## Purpose
 
 I mainly wrote this for myself to synchronize the smaller, lossy Opus music files from my PC to mobile.
 That way I have enough storage to keep everything on my phone.
@@ -12,7 +18,7 @@ To do this I suggest to do the conversion to a output directory on your PC and s
 ## Requirements
 
 - **[`opusenc`](http://opus-codec.org/downloads/) must be installed and in your `PATH` environment variable.**
-- Tested with Python 3.7.1
+- [Python](https://www.python.org/downloads/) 3.5 or higher
 
 
 ## Usage

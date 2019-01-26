@@ -1,13 +1,15 @@
-from subprocess import Popen
-from multiprocessing import Pool
-from shutil import copyfile, which
-from pathlib import Path
-import logging
 import sys
+from multiprocessing import Pool
+
+import logging
 import os
+from pathlib import Path
+from shutil import copyfile
+from shutil import which
+from subprocess import Popen
 
 if which('opusenc') is None:
-    print("ERROR: opusenc not found in PATH - please make sure it's installed",  file=sys.stderr)
+    print("ERROR: opusenc not found in PATH - please make sure it's installed", file=sys.stderr)
     exit(1)
 
 logging.basicConfig(
@@ -15,9 +17,6 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S')
-
-source = sys.argv[1]
-target = sys.argv[2]
 
 
 # We can't use a lambda since they aren't picklable
@@ -42,7 +41,7 @@ def copy(src_base, src_ext):
 
 
 def base_action(src_base, src_ext, dest_ext, f):
-    dest_base = target + os.sep + os.path.relpath(src_base, source)
+    dest_base = target_dir + os.sep + os.path.relpath(src_base, source_dir)
     dest_path = dest_base + dest_ext
     Path(dest_base).parent.mkdir(parents=True, exist_ok=True)
     if not os.path.isfile(dest_path):
@@ -57,23 +56,29 @@ extensions_to_action = {
 
     # Ignore files with these extensions
     # My source folder is synced with google drive and I don't want to copy google drive metadata
+    # TODO: make configurable
     **{ext: lambda *args: None for ext in ['.driveupload', '.drivedownload']}
 }
 
 
-def main():
-    for root, _, files in os.walk(source):
+def main(source: str, target: str):
+    global source_dir, target_dir, pool
+    source_dir = source
+    target_dir = target
+    pool = Pool(processes=8)
+
+    logging.info('checking for unconverted files')
+    for root, _, files in os.walk(source_dir):
         for file in files:
             file_base, src_ext = os.path.splitext(file)
             src_base = root + os.sep + file_base
             extensions_to_action.get(src_ext, copy)(src_base, src_ext)
 
-
-if __name__ == '__main__':
-    pool = Pool(processes=8)
-    logging.info('checking for unconverted files')
-    main()
     logging.info('finishing conversions')
     pool.close()
     pool.join()
     logging.info('conversions finished')
+
+
+if __name__ == '__main__':
+    main(sys.argv[1], sys.argv[2])

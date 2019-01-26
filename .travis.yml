@@ -1,0 +1,16 @@
+language: python
+sudo: required
+dist: xenial
+python:
+  - '3.5'
+  - '3.5-dev'
+  - '3.6'
+  - '3.6-dev'
+  - '3.7'
+  - '3.7-dev'
+
+before_script:
+  - sudo apt-get install -y opus-tools
+
+script:
+  - python -m unittest discover -s tests
