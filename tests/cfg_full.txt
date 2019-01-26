@@ -1,0 +1,4 @@
+source = /path/to/src
+target = /path/to/out
+verbose = true
+opusenc-args = ['--cvbr', '--quiet']

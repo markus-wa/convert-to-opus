@@ -1,0 +1,2 @@
+source = /path/to/src
+target = /path/to/out
