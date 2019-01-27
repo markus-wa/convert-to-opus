@@ -34,7 +34,7 @@ Options:
 ```
 $ python to_opus.py -h
 usage: to_opus.py [-h] [-c CONFIG] -s SOURCE -t TARGET
-                  [--opusenc-args OPUSENC_ARGS] [-v]
+                  [--opusenc-args OPUSENC_ARGS] [-db DATABASE] [-v]
 
 Args that start with '--' (eg. -s) can also be set in a config file (specified
 via -c). Config file syntax allows: key=value, flag=true, stuff=[a,b,c] (for
@@ -54,6 +54,8 @@ optional arguments:
                         arguments to pass to opusenc (see
                         https://mf4.xiph.org/jenkins/view/opus/job/opus-
                         tools/ws/man/opusenc.html)
+  -db DATABASE, --database DATABASE
+                        path to the database file
   -v, --verbose         print debug information
 ```
 
