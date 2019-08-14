@@ -14,6 +14,8 @@ The lossless versions are kept for use on the desktop and for backup into the cl
 
 To do this I suggest to do the conversion to a output directory on your PC and synchronize it with something like [Resilio](https://www.resilio.com/).
 
+You can automate the conversion with a cronjob or `Windows Task Scheduler`.
+
 
 ## Requirements
 
@@ -29,6 +31,10 @@ Recursively copies **all** files in the source directory to the target directory
 Files ending with `.flac`, `.wav`, `.aiff` and `.ogg` are converted and renamed to `.opus`.
 
     python to_opus.py --source /path/to/source-dir --target /path/to/output-dir
+
+With DB and log:
+
+    python convert-to-opus/to_opus.py -s Music -t Opus -db opus-db.json >> convert_to_opus.log
 
 Options:
 ```
@@ -66,3 +72,7 @@ Outputs a diff between the source and target directory, ignoring file extensions
 Can be useful to see if there are new, unconverted files.
 
     python base_diff.py /path/to/source-dir /path/to/output-dir
+
+### Troubleshooting
+
+You might need to set the environment variable `PYTHONIOENCODING=UTF-8` for it to work with files that contain special characters.
