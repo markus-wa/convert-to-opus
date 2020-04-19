@@ -31,6 +31,7 @@ class Migrator(object):
     def __init__(self,
                  src_dir: str,
                  dest_dir: str,
+                 del_converted: bool = False,
                  opus_args: List[str] = None,
                  db: Dict[str, Dict] = None):
         if opus_args is None:
@@ -42,6 +43,9 @@ class Migrator(object):
         self.target_dir = dest_dir
         self.opusenc_args = opus_args
         self.db = db
+
+        if del_converted:
+            self.delete_converted()
 
         self.extensions_to_action = {
             # Convert files with these extensions to .opus
@@ -102,12 +106,43 @@ class Migrator(object):
         self.pool.close()
         self.pool.join()
 
+    def delete_converted(self):
+        self.logger.info('checking source files that do not exist anymore')
+        for root, _, files in os.walk(self.target_dir):
+            for file in files:
+                file_base, dest_ext = os.path.splitext(file)
+                if dest_ext == ".opus":
+                    dest_base = root + os.sep + file_base
+                    dest_path = dest_base + dest_ext
+                    src_base = self.source_dir + os.sep + os.path.relpath(dest_base, self.target_dir)
+                    Path(src_base).parent.mkdir(parents=True, exist_ok=True)
+
+                    needs_deletion = True
+                    for ext in ['.wav', '.flac', '.ogg', '.aif']:
+                        src_path = src_base + ext
+                        if os.path.isfile(src_path):
+                            needs_deletion = False
+                            break
+
+                    if needs_deletion:
+                        self.logger.info("deleting " + dest_path + " (source file doesn't exist anymore)")
+                        os.remove(dest_path)
+                        if self.db is not None:
+                            for ext in ['.wav', '.flac', '.ogg', '.aif']:  # this (fishing for dict key) could be better
+                                if self.db.get(src_base + ext) is not None:
+                                    del self.db[src_base + ext]
+
+                        # todo remove empty dirs or dirs with only cover image
+                        continue
+
 
 def parse_args():
     p = configargparse.ArgParser()
     p.add_argument('-c', '--config', is_config_file=True, help='config file path')
     p.add_argument('-s', '--source', required=True, help='path to source directory')
     p.add_argument('-t', '--target', required=True, help='path to target directory')
+    p.add_argument('-del', '--del_converted', action='store_true',
+                   help='delete converted opus files, which source files do not exist anymore')
     p.add_argument('--opusenc-args', action='append', default=[],
                    help='arguments to pass to opusenc (see '
                         'https://mf4.xiph.org/jenkins/view/opus/job/opus-tools/ws/man/opusenc.html)')
@@ -154,7 +189,7 @@ def main(cfg):
     else:
         db = None
 
-    Migrator(cfg.source, cfg.target, cfg.opusenc_args, db).migrate()
+    Migrator(cfg.source, cfg.target, cfg.del_converted, cfg.opusenc_args, db).migrate()
 
     if db is not None:
         logging.info('updating db file')

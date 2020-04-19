@@ -56,6 +56,9 @@ optional arguments:
                         path to source directory
   -t TARGET, --target TARGET
                         path to target directory
+  -del, --del_converted
+                        delete converted opus files, which source files do not
+                        exist anymore
   --opusenc-args OPUSENC_ARGS
                         arguments to pass to opusenc (see
                         https://mf4.xiph.org/jenkins/view/opus/job/opus-
