@@ -1,0 +1,1 @@
+some fancy album cover that should be in ID3 tags instead

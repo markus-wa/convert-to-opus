@@ -24,6 +24,9 @@ class MicroMock(object):
         self.__dict__.update(kwargs)
 
 
+ignored_files = {'desktop.ini.txt', 'Folder.jpg.txt'}
+
+
 def clean_up():
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir)
@@ -53,10 +56,11 @@ class TestToOpus(unittest.TestCase):
             opusenc_args=[],
             database=None,
             del_removed=None,
-            threads=8
+            threads=8,
+            exclude=None
         ))
 
-        self.assertEqual(0, base_diff.main(source_dir, target_dir))
+        self.assertEqual(0, base_diff.diff_dirs(source_dir, target_dir, ignored_files))
 
     def test_main_db_empty(self):
         to_opus.main(MicroMock(
@@ -66,10 +70,11 @@ class TestToOpus(unittest.TestCase):
             opusenc_args=[],
             database=db_empty_tmp,
             del_removed=None,
-            threads=8
+            threads=8,
+            exclude=None
         ))
 
-        self.assertEqual(0, base_diff.main(source_dir, target_dir))
+        self.assertEqual(0, base_diff.diff_dirs(source_dir, target_dir, set()))
 
     def test_main_db_full(self):
         to_opus.main(MicroMock(
@@ -79,10 +84,11 @@ class TestToOpus(unittest.TestCase):
             opusenc_args=[],
             database=db_full_tmp,
             del_removed=None,
-            threads=8
+            threads=8,
+            exclude=None
         ))
 
-        self.assertEqual(0, base_diff.main(source_dir, target_dir))
+        self.assertEqual(0, base_diff.diff_dirs(source_dir, target_dir, ignored_files))
 
     def test_main_db_nonexistent(self):
         to_opus.main(MicroMock(
@@ -92,10 +98,11 @@ class TestToOpus(unittest.TestCase):
             opusenc_args=[],
             database=db_nonexistent,
             del_removed=None,
-            threads=8
+            threads=8,
+            exclude=None
         ))
 
-        self.assertEqual(0, base_diff.main(source_dir, target_dir))
+        self.assertEqual(0, base_diff.diff_dirs(source_dir, target_dir, ignored_files))
 
     def test_parse_args_min(self):
         sys.argv = [
@@ -117,8 +124,10 @@ class TestToOpus(unittest.TestCase):
             '-s', '/path/to/src',
             '-t', '/path/to/out',
             '-v',
-            '--opusenc-args', "'--cvbr'",
-            '--opusenc-args', "'--quiet'",
+            '-a', "'--cvbr'",
+            '-a', "'--quiet'",
+            '-x', 'desktop.ini.txt',
+            '-x', 'Folder.jpg.txt'
         ]
 
         cfg = to_opus.parse_args()
@@ -127,6 +136,7 @@ class TestToOpus(unittest.TestCase):
         self.assertEqual('/path/to/out', cfg.target)
         self.assertEqual(True, cfg.verbose)
         self.assertEqual(['--cvbr', '--quiet'], cfg.opusenc_args)
+        self.assertEqual(['desktop.ini.txt', 'Folder.jpg.txt'], cfg.exclude)
 
     def test_parse_cfg_min(self):
         sys.argv = [

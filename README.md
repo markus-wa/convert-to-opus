@@ -41,7 +41,7 @@ Files ending with `.flac`, `.wav`, `.aiff` and `.ogg` are converted and renamed 
 
 To set the bitrate of the opus encoder to 128 you can pass the following arguments:
 
-    python convert-to-opus/to_opus.py -s Music -t Opus --opusenc args "'--bitrate'" --opusenc-args 128 >> convert_to_opus.log
+    python convert-to-opus/to_opus.py -s Music -t Opus -a "'--bitrate'" -a 128 >> convert_to_opus.log
 
 **Options:**
 ```
@@ -68,7 +68,7 @@ optional arguments:
   -del, --del-removed
                         delete converted opus files, for which source files do not
                         exist anymore
-  --opusenc-args OPUSENC_ARGS
+  -a OPUSENC_ARGS, --opusenc-args OPUSENC_ARGS
                         arguments to pass to opusenc (see
                         https://mf4.xiph.org/jenkins/view/opus/job/opus-
                         tools/ws/man/opusenc.html)
@@ -77,6 +77,20 @@ optional arguments:
   -v, --verbose         print debug information
 ```
 
+#### Config File
+
+You can specify a path to a config file with `--config` or `-c`.
+
+Example config file contents:
+```
+source = /path/to/src
+target = /path/to/out
+verbose = true
+exclude = ['desktop.ini', 'Folder.jpg', ''AlbumArtSmall.jpg']
+opusenc-args = ['--cvbr', '--quiet']
+```
+
+Check out the [`ConfigArgParse`](https://github.com/bw2/ConfigArgParse) project for more details on the format.
 
 ### `base_diff.py`
 
