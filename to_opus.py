@@ -10,6 +10,8 @@ from shutil import copyfile, which
 from subprocess import Popen
 from typing import Callable, Dict, List
 
+SOURCE_EXTENSIONS = ['.wav', '.flac', '.ogg', '.aif']
+
 if which('opusenc') is None:
     print("ERROR: opusenc not found in PATH - please make sure it's installed", file=sys.stderr)
     exit(1)
@@ -31,7 +33,8 @@ class Migrator(object):
     def __init__(self,
                  src_dir: str,
                  dest_dir: str,
-                 del_converted: bool = False,
+                 threads: int = 8,
+                 del_removed: bool = False,
                  opus_args: List[str] = None,
                  db: Dict[str, Dict] = None):
         if opus_args is None:
@@ -44,12 +47,12 @@ class Migrator(object):
         self.opusenc_args = opus_args
         self.db = db
 
-        if del_converted:
+        if del_removed:
             self.delete_converted()
 
         self.extensions_to_action = {
             # Convert files with these extensions to .opus
-            **{ext: self.to_opus for ext in ['.wav', '.flac', '.ogg', '.aif']},
+            **{ext: self.to_opus for ext in SOURCE_EXTENSIONS},
 
             # Ignore files with these extensions
             # My source folder is synced with google drive and I don't want to copy google drive metadata
@@ -57,7 +60,7 @@ class Migrator(object):
             **{ext: lambda *args: None for ext in ['.driveupload', '.drivedownload']}
         }
 
-        self.pool = Pool(processes=8, initializer=init_worker, initargs=[opus_args, self.logger.level])
+        self.pool = Pool(processes=threads, initializer=init_worker, initargs=[opus_args, self.logger.level])
 
     def to_opus(self, src_base: str, src_ext: str) -> None:
         self.base_action(src_base, src_ext, '.opus', opusenc)
@@ -111,29 +114,37 @@ class Migrator(object):
         for root, _, files in os.walk(self.target_dir):
             for file in files:
                 file_base, dest_ext = os.path.splitext(file)
-                if dest_ext == ".opus":
-                    dest_base = root + os.sep + file_base
-                    dest_path = dest_base + dest_ext
-                    src_base = self.source_dir + os.sep + os.path.relpath(dest_base, self.target_dir)
-                    Path(src_base).parent.mkdir(parents=True, exist_ok=True)
+                dest_base = root + os.sep + file_base
+                dest_path = dest_base + dest_ext
+                src_base = self.source_dir + os.sep + os.path.relpath(dest_base, self.target_dir)
 
-                    needs_deletion = True
-                    for ext in ['.wav', '.flac', '.ogg', '.aif']:
-                        src_path = src_base + ext
-                        if os.path.isfile(src_path):
+                needs_deletion = True
+                if dest_ext == ".opus":  # check for unconverted origin file
+                    for ext in SOURCE_EXTENSIONS:
+                        if os.path.isfile(src_base + ext):
                             needs_deletion = False
                             break
+                elif os.path.isfile(src_base + dest_ext):  # check any other file types (images, etc.)
+                    needs_deletion = False
 
-                    if needs_deletion:
-                        self.logger.info("deleting " + dest_path + " (source file doesn't exist anymore)")
-                        os.remove(dest_path)
-                        if self.db is not None:
-                            for ext in ['.wav', '.flac', '.ogg', '.aif']:  # this (fishing for dict key) could be better
+                if needs_deletion:
+                    self.logger.info("deleting " + dest_path + " (source file doesn't exist anymore)")
+                    os.remove(dest_path)
+                    if self.db is not None:
+                        if dest_ext == ".opus":
+                            for ext in SOURCE_EXTENSIONS:  # this (fishing for dict key) could be better
                                 if self.db.get(src_base + ext) is not None:
                                     del self.db[src_base + ext]
+                        elif self.db.get(file) is not None:
+                            del self.db[file]
+                    continue
 
-                        # todo remove empty dirs or dirs with only cover image
-                        continue
+        for root, dirs, _ in os.walk(self.target_dir):  # check for empty dirs AFTER it deleted all possible files
+            for directory in dirs:
+                dir_path = root + os.sep + directory
+                if not os.listdir(dir_path):
+                    self.logger.info("deleting " + dir_path + " (empty directory)")
+                    os.rmdir(dir_path)
 
 
 def parse_args():
@@ -141,7 +152,8 @@ def parse_args():
     p.add_argument('-c', '--config', is_config_file=True, help='config file path')
     p.add_argument('-s', '--source', required=True, help='path to source directory')
     p.add_argument('-t', '--target', required=True, help='path to target directory')
-    p.add_argument('-del', '--del_converted', action='store_true',
+    p.add_argument('-thr', '--threads', help='thread count for parallel processing')
+    p.add_argument('-del', '--del-removed', action='store_true',
                    help='delete converted opus files, which source files do not exist anymore')
     p.add_argument('--opusenc-args', action='append', default=[],
                    help='arguments to pass to opusenc (see '
@@ -180,6 +192,9 @@ def main(cfg):
 
     logging.debug('config: %s', cfg)
 
+    if cfg.threads is not None:
+        cfg.threads = int(cfg.threads)
+
     if cfg.database is not None:
         if os.path.exists(cfg.database):
             with open(cfg.database, 'r') as f:
@@ -189,7 +204,7 @@ def main(cfg):
     else:
         db = None
 
-    Migrator(cfg.source, cfg.target, cfg.del_converted, cfg.opusenc_args, db).migrate()
+    Migrator(cfg.source, cfg.target, cfg.threads, cfg.del_removed, cfg.opusenc_args, db).migrate()
 
     if db is not None:
         logging.info('updating db file')

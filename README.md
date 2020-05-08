@@ -56,7 +56,9 @@ optional arguments:
                         path to source directory
   -t TARGET, --target TARGET
                         path to target directory
-  -del, --del_converted
+  -thr COUNT, --threads COUNT
+                        thread count for parallel processing
+  -del, --del-removed
                         delete converted opus files, which source files do not
                         exist anymore
   --opusenc-args OPUSENC_ARGS
