@@ -51,7 +51,9 @@ class TestToOpus(unittest.TestCase):
             target=target_dir,
             verbose=True,
             opusenc_args=[],
-            database=None
+            database=None,
+            del_removed=None,
+            threads=8
         ))
 
         self.assertEqual(0, base_diff.main(source_dir, target_dir))
@@ -62,7 +64,9 @@ class TestToOpus(unittest.TestCase):
             target=target_dir,
             verbose=True,
             opusenc_args=[],
-            database=db_empty_tmp
+            database=db_empty_tmp,
+            del_removed=None,
+            threads=8
         ))
 
         self.assertEqual(0, base_diff.main(source_dir, target_dir))
@@ -73,7 +77,9 @@ class TestToOpus(unittest.TestCase):
             target=target_dir,
             verbose=True,
             opusenc_args=[],
-            database=db_full_tmp
+            database=db_full_tmp,
+            del_removed=None,
+            threads=8
         ))
 
         self.assertEqual(0, base_diff.main(source_dir, target_dir))
@@ -84,7 +90,9 @@ class TestToOpus(unittest.TestCase):
             target=target_dir,
             verbose=True,
             opusenc_args=[],
-            database=db_nonexistent
+            database=db_nonexistent,
+            del_removed=None,
+            threads=8
         ))
 
         self.assertEqual(0, base_diff.main(source_dir, target_dir))

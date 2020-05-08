@@ -48,7 +48,7 @@ class Migrator(object):
         self.db = db
 
         if del_removed:
-            self.delete_converted()
+            self.delete_removed()
 
         self.extensions_to_action = {
             # Convert files with these extensions to .opus
@@ -109,7 +109,7 @@ class Migrator(object):
         self.pool.close()
         self.pool.join()
 
-    def delete_converted(self):
+    def delete_removed(self):
         self.logger.info('checking source files that do not exist anymore')
         for root, _, files in os.walk(self.target_dir):
             for file in files:
