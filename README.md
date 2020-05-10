@@ -66,7 +66,7 @@ optional arguments:
   -thr COUNT, --threads COUNT
                         thread count for parallel processing
   -del, --del-removed
-                        delete converted opus files, which source files do not
+                        delete converted opus files, for which source files do not
                         exist anymore
   --opusenc-args OPUSENC_ARGS
                         arguments to pass to opusenc (see
