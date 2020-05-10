@@ -1,4 +1,5 @@
 source = /path/to/src
 target = /path/to/out
 verbose = true
+exclude = ['desktop.ini.txt', 'Folder.jpg.txt', ''AlbumArtSmall.jpg.txt']
 opusenc-args = ['--cvbr', '--quiet']

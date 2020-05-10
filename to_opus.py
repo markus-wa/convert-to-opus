@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from shutil import copyfile, which
 from subprocess import Popen
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Set
 
 SOURCE_EXTENSIONS = ['.wav', '.flac', '.ogg', '.aif']
 
@@ -36,9 +36,12 @@ class Migrator(object):
                  threads: int = 8,
                  del_removed: bool = False,
                  opus_args: List[str] = None,
-                 db: Dict[str, Dict] = None):
+                 db: Dict[str, Dict] = None,
+                 excluded_files: Set = None):
         if opus_args is None:
             opus_args = []
+        if excluded_files is None:
+            excluded_files = {}
 
         self.logger = logging.getLogger('migrator')
 
@@ -46,6 +49,7 @@ class Migrator(object):
         self.target_dir = dest_dir
         self.opusenc_args = opus_args
         self.db = db
+        self.excluded_files = excluded_files
 
         if del_removed:
             self.delete_removed()
@@ -78,6 +82,9 @@ class Migrator(object):
             self.pool.apply_async(migrate, (src_path, dest_path,), error_callback=logging.error)
 
     def needs_migration(self, src_file: str, dest_file: str) -> bool:
+        if os.path.basename(dest_file) in self.excluded_files:
+            return False
+
         needs_migration = not os.path.isfile(dest_file)
 
         if self.db is not None:
@@ -155,11 +162,12 @@ def parse_args():
     p.add_argument('-thr', '--threads', help='thread count for parallel processing')
     p.add_argument('-del', '--del-removed', action='store_true',
                    help='delete converted opus files, which source files do not exist anymore')
-    p.add_argument('--opusenc-args', action='append', default=[],
+    p.add_argument('-a', '--opusenc-args', action='append', default=[],
                    help='arguments to pass to opusenc (see '
                         'https://mf4.xiph.org/jenkins/view/opus/job/opus-tools/ws/man/opusenc.html)')
     p.add_argument('-db', '--database', help='path to the database file')
     p.add_argument('-v', '--verbose', action='store_true', help='print debug information')
+    p.add_argument('-x', '--exclude', action='append', default=[], help='files to exclude in the migration')
 
     options = p.parse_args()
 
@@ -204,7 +212,12 @@ def main(cfg):
     else:
         db = None
 
-    Migrator(cfg.source, cfg.target, cfg.threads, cfg.del_removed, cfg.opusenc_args, db).migrate()
+    if cfg.exclude is not None:
+        exclude = set(cfg.exclude)
+    else:
+        exclude = None
+
+    Migrator(cfg.source, cfg.target, cfg.threads, cfg.del_removed, cfg.opusenc_args, db, exclude).migrate()
 
     if db is not None:
         logging.info('updating db file')

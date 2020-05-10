@@ -1,5 +1,5 @@
 import unittest
-
+import sys
 import os
 
 import base_diff
@@ -8,11 +8,46 @@ tests_dir = os.path.dirname(os.path.realpath(__file__))
 source_dir = tests_dir + '/source'
 golden_dir = tests_dir + '/golden'
 
+ignored_files = {'desktop.ini.txt', 'Folder.jpg.txt'}
+
+
+class MicroMock(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
 
 class TestBaseDiff(unittest.TestCase):
 
+    # noinspection DuplicatedCode
+    def test_parse_args_min(self):
+        sys.argv = [
+            'cmd',
+            '-s', '/path/to/src',
+            '-t', '/path/to/out',
+        ]
+
+        cfg = base_diff.parse_args()
+
+        self.assertEqual('/path/to/src', cfg.from_dir)
+        self.assertEqual('/path/to/out', cfg.to_dir)
+
+    def test_parse_args_full(self):
+        sys.argv = [
+            'cmd',
+            '-s', '/path/to/src',
+            '-t', '/path/to/out',
+            '-i', 'desktop.ini.txt',
+            '-i', 'Folder.jpg.txt'
+        ]
+
+        cfg = base_diff.parse_args()
+
+        self.assertEqual('/path/to/src', cfg.from_dir)
+        self.assertEqual('/path/to/out', cfg.to_dir)
+        self.assertEqual(['desktop.ini.txt', 'Folder.jpg.txt'], cfg.ignore)
+
     def test_structure(self):
-        actual = base_diff.structure(source_dir)
+        actual = base_diff.structure(source_dir, {"desktop.ini.txt", "Folder.jpg.txt"})
 
         expected = [
             'aifc',
@@ -34,12 +69,20 @@ class TestBaseDiff(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_main_same(self):
-        exit_code = base_diff.main(source_dir, golden_dir)
+        exit_code = base_diff.main(MicroMock(
+            from_dir=source_dir,
+            to_dir=golden_dir,
+            ignore=ignored_files
+        ))
 
         self.assertEqual(0, exit_code)
 
     def test_main_diff(self):
-        exit_code = base_diff.main(source_dir, source_dir + '/nested')
+        exit_code = base_diff.main(MicroMock(
+            from_dir=source_dir,
+            to_dir=source_dir + "/nested",
+            ignore=ignored_files
+        ))
 
         self.assertEqual(1, exit_code)
 
