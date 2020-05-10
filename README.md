@@ -89,8 +89,10 @@ source = /path/to/src
 target = /path/to/out
 verbose = true
 exclude = [desktop.ini, Folder.jpg, AlbumArtSmall.jpg]
-opusenc-args = ['--cvbr', '--quiet']
+opusenc-args = ['--cvbr', '--quiet', '--bitrate', 144]
 ```
+
+Note the wrapping single quotes `'` on `opusenc-args` with leading `--`
 
 Check out the [`ConfigArgParse`](https://github.com/bw2/ConfigArgParse) project for more details on the format.
 
