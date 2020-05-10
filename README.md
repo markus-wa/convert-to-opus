@@ -33,11 +33,17 @@ Files ending with `.flac`, `.wav`, `.aiff` and `.ogg` are converted and renamed 
 
     python to_opus.py --source /path/to/source-dir --target /path/to/output-dir
 
-With DB and log:
+**With DB and log:**
 
     python convert-to-opus/to_opus.py -s Music -t Opus -db opus-db.json >> convert_to_opus.log
+   
+**opusenc arguments:**
 
-Options:
+To set the bitrate of the opus encoder to 128 you can pass the following arguments:
+
+    python convert-to-opus/to_opus.py -s Music -t Opus --opusenc args "'--bitrate'" --opusenc-args 128 >> convert_to_opus.log
+
+**Options:**
 ```
 $ python to_opus.py -h
 usage: to_opus.py [-h] [-c CONFIG] -s SOURCE -t TARGET
