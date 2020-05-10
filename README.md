@@ -88,7 +88,7 @@ Example config file contents:
 source = /path/to/src
 target = /path/to/out
 verbose = true
-exclude = ['desktop.ini', 'Folder.jpg', ''AlbumArtSmall.jpg']
+exclude = [desktop.ini, Folder.jpg, AlbumArtSmall.jpg]
 opusenc-args = ['--cvbr', '--quiet']
 ```
 

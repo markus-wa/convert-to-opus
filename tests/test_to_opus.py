@@ -163,6 +163,7 @@ class TestToOpus(unittest.TestCase):
         self.assertEqual('/path/to/out', cfg.target)
         self.assertEqual(True, cfg.verbose)
         self.assertEqual(['--cvbr', '--quiet'], cfg.opusenc_args)
+        self.assertEqual(['desktop.ini.txt', 'Folder.jpg.txt', 'AlbumArtSmall.jpg.txt'], cfg.exclude)
 
     def test_needs_migration_unmigrated(self):
         mig = to_opus.Migrator(source_dir, target_dir)
@@ -206,7 +207,7 @@ class TestToOpus(unittest.TestCase):
         self.assertEqual(False, mig.needs_migration(src_file, golden_dir + os.sep + 'wave.opus'))
 
     def test_needs_migration_exclude(self):
-        mig = to_opus.Migrator(source_dir, target_dir, exclude_regexes={".+\\.png", "sample\\.txt"})
+        mig = to_opus.Migrator(source_dir, target_dir, exclude_regexes={".+\\.png", ".+\\.txt"})
 
         self.assertEqual(False,
                          mig.needs_migration(source_dir + os.sep + 'img.png', target_dir + os.sep + 'img.png'))
