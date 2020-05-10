@@ -21,6 +21,7 @@ You can automate the conversion with a cronjob or `Windows Task Scheduler`.
 
 - **[`opusenc`](http://opus-codec.org/downloads/) must be installed and in your `PATH` environment variable.**
 - [Python](https://www.python.org/downloads/) 3.6 or higher
+- `pip install -r requirements.txt`
 
 
 ## Usage
