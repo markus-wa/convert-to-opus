@@ -5,6 +5,7 @@ import configargparse
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from shutil import copyfile, which
 from subprocess import Popen
@@ -37,11 +38,11 @@ class Migrator(object):
                  del_removed: bool = False,
                  opus_args: List[str] = None,
                  db: Dict[str, Dict] = None,
-                 excluded_files: Set = None):
+                 exclude_regexes: Set = None):
         if opus_args is None:
             opus_args = []
-        if excluded_files is None:
-            excluded_files = {}
+        if exclude_regexes is None:
+            exclude_regexes = {}
 
         self.logger = logging.getLogger('migrator')
 
@@ -49,7 +50,7 @@ class Migrator(object):
         self.target_dir = dest_dir
         self.opusenc_args = opus_args
         self.db = db
-        self.excluded_files = excluded_files
+        self.exclude_regexes = [re.compile(expr) for expr in exclude_regexes]
 
         if del_removed:
             self.delete_removed()
@@ -82,7 +83,8 @@ class Migrator(object):
             self.pool.apply_async(migrate, (src_path, dest_path,), error_callback=logging.error)
 
     def needs_migration(self, src_file: str, dest_file: str) -> bool:
-        if os.path.basename(dest_file) in self.excluded_files:
+        base_name = os.path.basename(dest_file)
+        if any(p.match(base_name) for p in self.exclude_regexes):
             return False
 
         needs_migration = not os.path.isfile(dest_file)
@@ -159,15 +161,17 @@ def parse_args():
     p.add_argument('-c', '--config', is_config_file=True, help='config file path')
     p.add_argument('-s', '--source', required=True, help='path to source directory')
     p.add_argument('-t', '--target', required=True, help='path to target directory')
-    p.add_argument('-thr', '--threads', help='thread count for parallel processing')
+    p.add_argument('-thr', '--threads', metavar="COUNT", help='thread count for parallel processing')
     p.add_argument('-del', '--del-removed', action='store_true',
-                   help='delete converted opus files, which source files do not exist anymore')
+                   help='delete converted opus files, for which source files do not exist anymore')
     p.add_argument('-a', '--opusenc-args', action='append', default=[],
-                   help='arguments to pass to opusenc (see '
-                        'https://mf4.xiph.org/jenkins/view/opus/job/opus-tools/ws/man/opusenc.html)')
+                   help='arguments to pass to opusenc. '
+                        '(see https://mf4.xiph.org/jenkins/view/opus/job/opus-tools/ws/man/opusenc.html)')
     p.add_argument('-db', '--database', help='path to the database file')
     p.add_argument('-v', '--verbose', action='store_true', help='print debug information')
-    p.add_argument('-x', '--exclude', action='append', default=[], help='files to exclude in the migration')
+    p.add_argument('-x', '--exclude', action='append', default=[],
+                   help='files (Python REGEX) to exclude in the migration. '
+                   'see https://docs.python.org/3/howto/regex.html')
 
     options = p.parse_args()
 

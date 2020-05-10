@@ -46,8 +46,8 @@ To set the bitrate of the opus encoder to 128 you can pass the following argumen
 **Options:**
 ```
 $ python to_opus.py -h
-usage: to_opus.py [-h] [-c CONFIG] -s SOURCE -t TARGET
-                  [--opusenc-args OPUSENC_ARGS] [-db DATABASE] [-v]
+usage: to_opus.py [-h] [-c CONFIG] -s SOURCE -t TARGET [-thr COUNT] [-del]
+                  [-a OPUSENC_ARGS] [-db DATABASE] [-v] [-x EXCLUDE]
 
 Args that start with '--' (eg. -s) can also be set in a config file (specified
 via -c). Config file syntax allows: key=value, flag=true, stuff=[a,b,c] (for
@@ -65,16 +65,18 @@ optional arguments:
                         path to target directory
   -thr COUNT, --threads COUNT
                         thread count for parallel processing
-  -del, --del-removed
-                        delete converted opus files, for which source files do not
-                        exist anymore
+  -del, --del-removed   delete converted opus files, for which source files do
+                        not exist anymore
   -a OPUSENC_ARGS, --opusenc-args OPUSENC_ARGS
-                        arguments to pass to opusenc (see
+                        arguments to pass to opusenc. (see
                         https://mf4.xiph.org/jenkins/view/opus/job/opus-
                         tools/ws/man/opusenc.html)
   -db DATABASE, --database DATABASE
                         path to the database file
   -v, --verbose         print debug information
+  -x EXCLUDE, --exclude EXCLUDE
+                        files (Python REGEX) to exclude in the migration. see
+                        https://docs.python.org/3/howto/regex.html
 ```
 
 #### Config File
