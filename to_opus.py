@@ -6,12 +6,13 @@ import json
 import logging
 import os
 import re
+import filecmp
 from pathlib import Path
 from shutil import copyfile, which
 from subprocess import Popen
-from typing import Callable, Dict, List, Set
+from typing import Callable, Dict, List, Set, Optional
 
-SOURCE_EXTENSIONS = ['.wav', '.flac', '.ogg', '.aif']
+SOURCE_EXTENSIONS = ['.wav', '.flac', '.ogg', '.aif', '.aiff']
 
 if which('opusenc') is None:
     print("ERROR: opusenc not found in PATH - please make sure it's installed", file=sys.stderr)
@@ -19,7 +20,7 @@ if which('opusenc') is None:
 
 
 def opusenc(src: str, dest: str) -> None:
-    if Popen(['opusenc', src, dest] + opusenc_args).wait() is 0:
+    if Popen(['opusenc', src, dest] + opusenc_args).wait() == 0:
         logging.info('converted "%s" -> "%s"', src, dest)
     else:
         # Fallback to copy
@@ -30,19 +31,25 @@ def opusenc(src: str, dest: str) -> None:
         copyfile(src, target_base + src_ext)
 
 
+def copy(src: str, dest: str) -> None:
+    copyfile(src, dest)
+
+
 class Migrator(object):
     def __init__(self,
                  src_dir: str,
                  dest_dir: str,
                  threads: int = 8,
                  del_removed: bool = False,
-                 opus_args: List[str] = None,
-                 db: Dict[str, Dict] = None,
-                 exclude_regexes: Set = None):
+                 opus_args: Optional[List[str]] = None,
+                 db: Optional[Dict[str, Dict]] = None,
+                 exclude_regexes: Optional[Set] = None,
+                 db_file: Optional[str] = None,
+                 db_write_frequency: int = 100):
         if opus_args is None:
             opus_args = []
         if exclude_regexes is None:
-            exclude_regexes = {}
+            exclude_regexes = set([])
 
         self.logger = logging.getLogger('migrator')
 
@@ -51,6 +58,9 @@ class Migrator(object):
         self.opusenc_args = opus_args
         self.db = db
         self.exclude_regexes = [re.compile(expr) for expr in exclude_regexes]
+        self.db_file = db_file
+        self.n = 0
+        self.db_write_frequency = db_write_frequency
 
         if del_removed:
             self.delete_removed()
@@ -71,38 +81,57 @@ class Migrator(object):
         self.base_action(src_base, src_ext, '.opus', opusenc)
 
     def copy(self, src_base: str, src_ext: str) -> None:
-        self.base_action(src_base, src_ext, src_ext, copyfile)
+        self.base_action(src_base, src_ext, src_ext, copy)
 
     def base_action(self, src_base: str, src_ext: str, dest_ext: str, migrate: Callable[[str, str], None]):
-        dest_base = self.target_dir + os.sep + os.path.relpath(src_base, self.source_dir)
+        rel_path = os.path.relpath(src_base, self.source_dir)
+        dest_base = self.target_dir + os.sep + rel_path
         dest_path = dest_base + dest_ext
         Path(dest_base).parent.mkdir(parents=True, exist_ok=True)
         src_path = src_base + src_ext
-        if self.needs_migration(src_path, dest_path):
-            self.logger.info('migrating: "%s" -> "%s"', src_path, dest_path)
-            self.pool.apply_async(migrate, (src_path, dest_path,), error_callback=logging.error)
 
-    def needs_migration(self, src_file: str, dest_file: str) -> bool:
+        if self.needs_migration(src_path, dest_path, rel_path):
+            self.logger.info('migrating: "%s" -> "%s"', src_path, dest_path)
+            result = self.pool.apply_async(migrate, (src_path, dest_path,), error_callback=logging.error)
+            result.get(timeout=60)
+
+        if self.db is not None:
+            size = os.path.getsize(src_path)
+            mod_time = os.path.getmtime(src_path)
+
+            self.db[rel_path] = {
+                'size': size,
+                'last_modified': mod_time,
+            }
+
+            if self.n%self.db_write_frequency == 0 and self.db_file is not None:
+                logging.info('updating db file')
+                with open(self.db_file, 'w') as f:
+                    f.write(json.dumps(self.db))
+                logging.info('updated db file')
+
+        self.n += 1
+
+
+    def needs_migration(self, src_file: str, dest_file: str, rel_path: str) -> bool:
         base_name = os.path.basename(dest_file)
         if any(p.match(base_name) for p in self.exclude_regexes):
             return False
 
-        needs_migration = not os.path.isfile(dest_file)
+        if not os.path.isfile(dest_file):
+            return True
+
+        size = os.path.getsize(src_file)
+        mod_time = os.path.getmtime(src_file)
+
+        if filecmp.cmp(src_file, dest_file):
+            return False
 
         if self.db is not None:
-            size = os.path.getsize(src_file)
-            mod_time = os.path.getmtime(src_file)
-
-            if src_file in self.db:
-                needs_migration |= self.db[src_file]['size'] != size
-                needs_migration |= self.db[src_file]['last_modified'] != mod_time
+            if rel_path in self.db:
+                return (self.db[rel_path]['size'] != size) | (self.db[rel_path]['last_modified'] != mod_time)
             else:
-                needs_migration = True
-
-            self.db[src_file] = {
-                'size': size,
-                'last_modified': mod_time,
-            }
+                return True
 
         return needs_migration
 
@@ -207,24 +236,25 @@ def main(cfg):
     if cfg.threads is not None:
         cfg.threads = int(cfg.threads)
 
+    db: Optional[Dict[str, Dict]] = None
+
     if cfg.database is not None:
         if os.path.exists(cfg.database):
             with open(cfg.database, 'r') as f:
-                db: Dict[str, Dict] = json.load(f)
+                db = json.load(f)
         else:
             db = {}
-    else:
-        db = None
 
     if cfg.exclude is not None:
         exclude = set(cfg.exclude)
     else:
         exclude = None
 
-    Migrator(cfg.source, cfg.target, cfg.threads, cfg.del_removed, cfg.opusenc_args, db, exclude).migrate()
+    Migrator(cfg.source, cfg.target, cfg.threads, cfg.del_removed, cfg.opusenc_args, db, exclude, cfg.database).migrate()
 
     if db is not None:
         logging.info('updating db file')
+
         with open(cfg.database, 'w') as f:
             f.write(json.dumps(db))
 
